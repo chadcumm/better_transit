@@ -117,8 +117,13 @@ class StopTimeRow(BaseModel):
 
     @field_validator("arrival_time", "departure_time", mode="before")
     @classmethod
-    def strip_time(cls, v: str) -> str:
-        return v.strip()
+    def normalize_time(cls, v: str) -> str:
+        v = v.strip()
+        # Zero-pad single-digit hours: "5:30:00" -> "05:30:00"
+        parts = v.split(":")
+        if len(parts) == 3 and len(parts[0]) == 1:
+            v = f"0{v}"
+        return v
 
     _clean = field_validator("stop_headsign", mode="before")(_empty_to_none)
 

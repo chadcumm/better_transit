@@ -92,14 +92,25 @@ class TestStopTimeRow:
     def test_valid(self):
         row = StopTimeRow(
             trip_id="285265",
+            arrival_time="05:30:00",
+            departure_time="05:30:00",
+            stop_id="217",
+            stop_sequence=1,
+        )
+        assert row.arrival_time == "05:30:00"
+
+    def test_zero_pads_single_digit_hour(self):
+        row = StopTimeRow(
+            trip_id="285265",
             arrival_time="5:30:00",
             departure_time="5:30:00",
             stop_id="217",
             stop_sequence=1,
         )
-        assert row.arrival_time == "5:30:00"
+        assert row.arrival_time == "05:30:00"
+        assert row.departure_time == "05:30:00"
 
-    def test_leading_space_stripped(self):
+    def test_leading_space_stripped_and_padded(self):
         row = StopTimeRow(
             trip_id="285265",
             arrival_time=" 5:30:00",
@@ -107,7 +118,7 @@ class TestStopTimeRow:
             stop_id="217",
             stop_sequence=1,
         )
-        assert row.arrival_time == "5:30:00"
+        assert row.arrival_time == "05:30:00"
 
     def test_overnight_time(self):
         row = StopTimeRow(
