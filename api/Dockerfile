@@ -14,8 +14,10 @@ COPY --from=build ${LAMBDA_TASK_ROOT} ${LAMBDA_TASK_ROOT}
 
 COPY . ${LAMBDA_TASK_ROOT}
 
-# Debug: show what SST staged in the build context
-RUN echo "=== LAMBDA_TASK_ROOT top ===" && ls -la ${LAMBDA_TASK_ROOT}/ && \
-    echo "=== src/ ===" && ls -la ${LAMBDA_TASK_ROOT}/src/ 2>/dev/null || echo "NO src/ dir" && \
-    echo "=== better_transit/ ===" && ls -la ${LAMBDA_TASK_ROOT}/src/better_transit/ 2>/dev/null || echo "NO src/better_transit/ dir" && \
-    echo "=== better_transit top-level? ===" && ls -la ${LAMBDA_TASK_ROOT}/better_transit/ 2>/dev/null || echo "NO better_transit/ at root"
+# SST sets the handler to api.src.better_transit.handler.handler based on the
+# file path, but flattens src/ so better_transit/ is at the task root. Create
+# the api/src directory with __init__.py files and symlink better_transit.
+RUN mkdir -p ${LAMBDA_TASK_ROOT}/api/src && \
+    touch ${LAMBDA_TASK_ROOT}/api/__init__.py \
+          ${LAMBDA_TASK_ROOT}/api/src/__init__.py && \
+    ln -s ${LAMBDA_TASK_ROOT}/better_transit ${LAMBDA_TASK_ROOT}/api/src/better_transit
