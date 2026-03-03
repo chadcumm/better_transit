@@ -1,0 +1,3 @@
+route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_url,route_color,route_text_color
+101,KCATA,101,State,101,3,,C0C0C0,000000
+102,KCATA,102,Blue Ridge,102,3,,C0C0C0,000000

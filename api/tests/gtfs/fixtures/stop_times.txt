@@ -1,0 +1,3 @@
+trip_id,arrival_time,departure_time,stop_id,stop_sequence,stop_headsign,pickup_type,drop_off_type,shape_dist_traveled,timepoint
+285265, 5:30:00, 5:30:00,217,1,,0,0,,1
+285265, 5:30:57, 5:30:57,1090042,2,,0,0,0.3692,0

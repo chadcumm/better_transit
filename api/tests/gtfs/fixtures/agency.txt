@@ -1,0 +1,2 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_lang,agency_phone,agency_fare_url
+KCATA,Kansas City Area Transportation Authority,http://www.kcata.org,America/Chicago,en,816-221-0660,
