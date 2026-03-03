@@ -15,7 +15,7 @@ COPY --from=build ${LAMBDA_TASK_ROOT} ${LAMBDA_TASK_ROOT}
 COPY . ${LAMBDA_TASK_ROOT}
 
 # Debug: show what SST staged in the build context
-RUN echo "=== LAMBDA_TASK_ROOT contents ===" && \
-    find ${LAMBDA_TASK_ROOT} -maxdepth 3 -type f | head -60 && \
-    echo "=== directories ===" && \
-    find ${LAMBDA_TASK_ROOT} -maxdepth 3 -type d | head -30
+RUN echo "=== LAMBDA_TASK_ROOT top ===" && ls -la ${LAMBDA_TASK_ROOT}/ && \
+    echo "=== src/ ===" && ls -la ${LAMBDA_TASK_ROOT}/src/ 2>/dev/null || echo "NO src/ dir" && \
+    echo "=== better_transit/ ===" && ls -la ${LAMBDA_TASK_ROOT}/src/better_transit/ 2>/dev/null || echo "NO src/better_transit/ dir" && \
+    echo "=== better_transit top-level? ===" && ls -la ${LAMBDA_TASK_ROOT}/better_transit/ 2>/dev/null || echo "NO better_transit/ at root"
