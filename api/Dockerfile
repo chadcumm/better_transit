@@ -14,13 +14,8 @@ COPY --from=build ${LAMBDA_TASK_ROOT} ${LAMBDA_TASK_ROOT}
 
 COPY . ${LAMBDA_TASK_ROOT}
 
-# SST sets the handler to api.src.better_transit.handler.handler based on the
-# file path, but stages api/ contents at root. Create the api/src path with a
-# symlink so the Lambda handler import resolves correctly.
-RUN mkdir -p ${LAMBDA_TASK_ROOT}/api/src && \
-    touch ${LAMBDA_TASK_ROOT}/api/__init__.py \
-          ${LAMBDA_TASK_ROOT}/api/src/__init__.py && \
-    ln -s ${LAMBDA_TASK_ROOT}/src/better_transit ${LAMBDA_TASK_ROOT}/api/src/better_transit
-
-# Add src/ to Python path so "from better_transit..." imports work
-ENV PYTHONPATH="${LAMBDA_TASK_ROOT}/src"
+# Debug: show what SST staged in the build context
+RUN echo "=== LAMBDA_TASK_ROOT contents ===" && \
+    find ${LAMBDA_TASK_ROOT} -maxdepth 3 -type f | head -60 && \
+    echo "=== directories ===" && \
+    find ${LAMBDA_TASK_ROOT} -maxdepth 3 -type d | head -30
