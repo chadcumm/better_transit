@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -8,7 +9,7 @@ from better_transit.gtfs.models import Base
 TEST_DB_URL = "postgresql+asyncpg://better_transit:dev@localhost:5432/better_transit_test"
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_engine():
     engine = create_async_engine(TEST_DB_URL)
     async with engine.begin() as conn:
