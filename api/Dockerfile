@@ -4,7 +4,7 @@ FROM public.ecr.aws/lambda/python:3.12
 RUN dnf install -y geos geos-devel proj proj-devel && dnf clean all
 
 # Install uv for fast dependency resolution
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.6 /uv /usr/local/bin/uv
 
 # Copy dependency files first for layer caching
 COPY pyproject.toml uv.lock ./
