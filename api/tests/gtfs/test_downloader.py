@@ -18,11 +18,9 @@ def fake_gtfs_zip(tmp_path: Path) -> Path:
 
 
 def test_download_and_extract(fake_gtfs_zip: Path, tmp_path: Path):
-    fake_url = f"file://{fake_gtfs_zip}"
-
     with patch("better_transit.gtfs.downloader.urllib.request.urlretrieve") as mock_retrieve:
         mock_retrieve.return_value = (str(fake_gtfs_zip), None)
-        result_dir = download_and_extract(fake_url, tmp_path / "output")
+        result_dir = download_and_extract("https://example.com/gtfs.zip", tmp_path / "output")
 
     assert result_dir.is_dir()
     assert (result_dir / "agency.txt").exists()
@@ -36,3 +34,13 @@ def test_download_and_extract_returns_path_with_txt_files(fake_gtfs_zip: Path, t
 
     txt_files = list(result_dir.glob("*.txt"))
     assert len(txt_files) == 2
+
+
+def test_rejects_file_scheme():
+    with pytest.raises(ValueError, match="not allowed"):
+        download_and_extract("file:///etc/passwd", Path("/tmp/out"))
+
+
+def test_rejects_ftp_scheme():
+    with pytest.raises(ValueError, match="not allowed"):
+        download_and_extract("ftp://example.com/gtfs.zip", Path("/tmp/out"))
