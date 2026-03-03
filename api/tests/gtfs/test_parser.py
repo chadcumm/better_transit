@@ -57,7 +57,7 @@ def test_parse_stop_times_strips_leading_space():
     stop_times = result["stop_times"]
     assert len(stop_times) == 2
     assert isinstance(stop_times[0], StopTimeRow)
-    assert stop_times[0].arrival_time == "5:30:00"  # leading space stripped
+    assert stop_times[0].arrival_time == "05:30:00"  # leading space stripped + zero-padded
 
 
 def test_parse_shapes():
