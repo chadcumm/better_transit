@@ -18,6 +18,8 @@ from better_transit.gtfs.schemas import (
 
 logger = logging.getLogger(__name__)
 
+ERROR_THRESHOLD = 0.10  # Abort if >10% of rows fail validation
+
 GTFS_FILES: dict[str, type[BaseModel]] = {
     "agency": AgencyRow,
     "routes": RouteRow,
@@ -31,13 +33,18 @@ GTFS_FILES: dict[str, type[BaseModel]] = {
 
 
 def _parse_file(filepath: Path, schema: type[BaseModel]) -> list[Any]:
-    """Parse a single GTFS CSV file into a list of validated Pydantic models."""
+    """Parse a single GTFS CSV file into a list of validated Pydantic models.
+
+    Raises ValueError if more than ERROR_THRESHOLD (10%) of rows fail validation.
+    """
     rows: list[Any] = []
     errors = 0
+    total = 0
 
     with filepath.open(newline="", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         for i, raw_row in enumerate(reader):
+            total += 1
             try:
                 rows.append(schema.model_validate(raw_row))
             except ValidationError:
@@ -47,6 +54,12 @@ def _parse_file(filepath: Path, schema: type[BaseModel]) -> list[Any]:
 
     if errors:
         logger.warning("%d rows failed validation in %s", errors, filepath.name)
+
+    if total > 0 and errors / total > ERROR_THRESHOLD:
+        raise ValueError(
+            f"Too many validation errors in {filepath.name}: "
+            f"{errors}/{total} rows ({errors / total:.0%}) exceeded {ERROR_THRESHOLD:.0%} threshold"
+        )
 
     logger.info("Parsed %d rows from %s (%d errors)", len(rows), filepath.name, errors)
     return rows

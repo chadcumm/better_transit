@@ -1,4 +1,5 @@
 import logging
+import shutil
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -7,6 +8,7 @@ from urllib.parse import urlparse
 logger = logging.getLogger(__name__)
 
 ALLOWED_SCHEMES = {"http", "https"}
+DOWNLOAD_TIMEOUT = 60
 
 
 def _validate_url(url: str) -> None:
@@ -28,7 +30,10 @@ def download_and_extract(url: str, extract_to: Path) -> Path:
     zip_path = extract_to / "gtfs.zip"
 
     logger.info("Downloading GTFS feed from %s", url)
-    downloaded_path, _ = urllib.request.urlretrieve(url, zip_path)
+    with urllib.request.urlopen(url, timeout=DOWNLOAD_TIMEOUT) as response:
+        with open(zip_path, "wb") as out_file:
+            shutil.copyfileobj(response, out_file)
+    downloaded_path = zip_path
 
     logger.info("Extracting to %s", extract_to)
     with zipfile.ZipFile(downloaded_path, "r") as zf:

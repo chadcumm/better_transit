@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from better_transit.gtfs.parser import parse_gtfs_directory
+from better_transit.gtfs.parser import _parse_file, parse_gtfs_directory
 from better_transit.gtfs.schemas import (
     AgencyRow,
     CalendarDateRow,
@@ -81,3 +81,34 @@ def test_parse_calendar_dates():
     cal_dates = result["calendar_dates"]
     assert len(cal_dates) == 1
     assert isinstance(cal_dates[0], CalendarDateRow)
+
+
+def test_error_threshold_aborts_on_high_error_rate(tmp_path: Path):
+    """If >10% of rows fail validation, _parse_file should raise ValueError."""
+    # Create a stops file where most rows are invalid (missing required stop_name)
+    content = "stop_id,stop_name,stop_lat,stop_lon\n"
+    # 1 valid row
+    content += "1,Valid Stop,39.1,-94.5\n"
+    # 9 invalid rows (missing stop_name)
+    for i in range(2, 11):
+        content += f"{i},,invalid_lat,invalid_lon\n"
+    filepath = tmp_path / "stops.txt"
+    filepath.write_text(content)
+
+    with pytest.raises(ValueError, match="Too many validation errors"):
+        _parse_file(filepath, StopRow)
+
+
+def test_error_threshold_allows_low_error_rate(tmp_path: Path):
+    """If <=10% of rows fail validation, _parse_file should succeed."""
+    content = "stop_id,stop_name,stop_lat,stop_lon\n"
+    # 9 valid rows
+    for i in range(1, 10):
+        content += f"{i},Stop {i},39.1,-94.5\n"
+    # 1 invalid row (10% exactly, not exceeded)
+    content += "10,,invalid_lat,invalid_lon\n"
+    filepath = tmp_path / "stops.txt"
+    filepath.write_text(content)
+
+    result = _parse_file(filepath, StopRow)
+    assert len(result) == 9

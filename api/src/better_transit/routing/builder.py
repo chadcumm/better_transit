@@ -1,0 +1,165 @@
+"""Build RAPTOR data structures from database queries."""
+
+import datetime
+from collections import defaultdict
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from better_transit.gtfs.models import Stop, StopTime, Trip
+from better_transit.gtfs.queries import get_active_service_ids
+from better_transit.routing.data import (
+    RaptorData,
+    Transfer,
+    TransitRoute,
+    TripSchedule,
+    time_str_to_seconds,
+)
+from better_transit.routing.data import StopTime as RaptorStopTime
+
+WALK_SPEED_MPS = 1.2  # Average walking speed: ~4.3 km/h
+
+
+async def build_raptor_data(
+    session: AsyncSession,
+    date: datetime.date,
+) -> RaptorData:
+    """Build RAPTOR data structures for a given service date."""
+    service_ids = await get_active_service_ids(session, date)
+    if not service_ids:
+        return RaptorData()
+
+    # Get all trips for active services
+    trips_stmt = (
+        select(Trip)
+        .where(Trip.service_id.in_(service_ids))
+        .order_by(Trip.route_id, Trip.trip_id)
+    )
+    trips_result = await session.execute(trips_stmt)
+    trips = list(trips_result.scalars().all())
+
+    trip_ids = [t.trip_id for t in trips]
+    if not trip_ids:
+        return RaptorData()
+
+    # Get all stop_times for these trips
+    st_stmt = (
+        select(StopTime)
+        .where(StopTime.trip_id.in_(trip_ids))
+        .order_by(StopTime.trip_id, StopTime.stop_sequence)
+    )
+    st_result = await session.execute(st_stmt)
+    stop_times = list(st_result.scalars().all())
+
+    # Group stop_times by trip
+    trip_stop_times: dict[str, list[StopTime]] = defaultdict(list)
+    for st in stop_times:
+        trip_stop_times[st.trip_id].append(st)
+
+    # Build route data
+    routes_by_id: dict[str, TransitRoute] = {}
+    stop_routes: dict[str, set[str]] = defaultdict(set)
+    all_stop_ids: set[str] = set()
+
+    # Group trips by route
+    route_trips: dict[str, list[Trip]] = defaultdict(list)
+    for trip in trips:
+        route_trips[trip.route_id].append(trip)
+
+    for route_id, route_trips_list in route_trips.items():
+        # Build ordered stop list from first trip
+        first_trip = route_trips_list[0]
+        sts = trip_stop_times.get(first_trip.trip_id, [])
+        if not sts:
+            continue
+
+        ordered_stops = [st.stop_id for st in sts]
+
+        trip_schedules = []
+        for trip in route_trips_list:
+            trip_sts = trip_stop_times.get(trip.trip_id, [])
+            if not trip_sts:
+                continue
+            raptor_sts = [
+                RaptorStopTime(
+                    stop_id=st.stop_id,
+                    arrival=time_str_to_seconds(st.arrival_time),
+                    departure=time_str_to_seconds(st.departure_time),
+                )
+                for st in trip_sts
+            ]
+            trip_schedules.append(TripSchedule(
+                trip_id=trip.trip_id,
+                route_id=route_id,
+                stop_times=raptor_sts,
+            ))
+
+        # Sort trips by departure from first stop
+        trip_schedules.sort(key=lambda ts: ts.stop_times[0].departure)
+
+        routes_by_id[route_id] = TransitRoute(
+            route_id=route_id,
+            stops=ordered_stops,
+            trips=trip_schedules,
+        )
+
+        for stop_id in ordered_stops:
+            stop_routes[stop_id].add(route_id)
+            all_stop_ids.add(stop_id)
+
+    # Build transfer graph (walking between nearby stops)
+    transfers = await _build_transfers(session, all_stop_ids)
+
+    return RaptorData(
+        routes=routes_by_id,
+        stop_routes={sid: sorted(rids) for sid, rids in stop_routes.items()},
+        transfers=transfers,
+        all_stop_ids=all_stop_ids,
+    )
+
+
+async def _build_transfers(
+    session: AsyncSession,
+    stop_ids: set[str],
+    max_walk_meters: int = 400,
+) -> dict[str, list[Transfer]]:
+    """Build walking transfer edges between nearby stops.
+
+    Uses a simplified approach: for each stop, find stops within
+    max_walk_meters and compute walking time.
+    """
+    transfers: dict[str, list[Transfer]] = defaultdict(list)
+
+    # Get all stop coordinates
+    stops_stmt = select(Stop).where(Stop.stop_id.in_(stop_ids))
+    stops_result = await session.execute(stops_stmt)
+    stops = {s.stop_id: s for s in stops_result.scalars().all()}
+
+    # Simple quadratic approach — fine for KCATA scale (~2000 stops)
+    stop_list = list(stops.values())
+    for i, s1 in enumerate(stop_list):
+        for s2 in stop_list[i + 1 :]:
+            dist = _haversine(s1.stop_lat, s1.stop_lon, s2.stop_lat, s2.stop_lon)
+            if dist <= max_walk_meters:
+                walk_time = int(dist / WALK_SPEED_MPS)
+                transfers[s1.stop_id].append(
+                    Transfer(s1.stop_id, s2.stop_id, walk_time)
+                )
+                transfers[s2.stop_id].append(
+                    Transfer(s2.stop_id, s1.stop_id, walk_time)
+                )
+
+    return dict(transfers)
+
+
+def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Approximate distance in meters between two points using Haversine."""
+    import math
+
+    earth_radius = 6371000  # meters
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlam = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
+    return earth_radius * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))

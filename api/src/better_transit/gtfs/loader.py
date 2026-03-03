@@ -22,6 +22,8 @@ from better_transit.gtfs.schemas import ShapePointRow, StopRow
 
 logger = logging.getLogger(__name__)
 
+BATCH_SIZE = 5000
+
 # Order matters for truncation (reverse dependency order)
 TRUNCATE_ORDER = [
     "shape_geoms",
@@ -100,7 +102,9 @@ async def load_gtfs_data(
             else:
                 dicts = [r.model_dump() for r in rows]
 
-            await conn.execute(model_cls.__table__.insert(), dicts)
+            for i in range(0, len(dicts), BATCH_SIZE):
+                batch = dicts[i : i + BATCH_SIZE]
+                await conn.execute(model_cls.__table__.insert(), batch)
             stats[name] = len(dicts)
             logger.info("Inserted %d rows into %s", len(dicts), name)
 
@@ -108,7 +112,9 @@ async def load_gtfs_data(
         shape_points = data.get("shapes", [])
         shape_geoms = _build_shape_geoms(shape_points)
         if shape_geoms:
-            await conn.execute(ShapeGeom.__table__.insert(), shape_geoms)
+            for i in range(0, len(shape_geoms), BATCH_SIZE):
+                batch = shape_geoms[i : i + BATCH_SIZE]
+                await conn.execute(ShapeGeom.__table__.insert(), batch)
         stats["shape_geoms"] = len(shape_geoms)
         logger.info("Inserted %d shape geometries", len(shape_geoms))
 
