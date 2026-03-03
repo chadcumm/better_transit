@@ -62,3 +62,22 @@ async def _main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(_main())
+
+
+def lambda_handler(event, context):
+    """AWS Lambda entry point for scheduled GTFS import."""
+    import json
+
+    async def _run():
+        engine = create_async_engine(settings.database_url)
+        try:
+            stats = await run_import(engine)
+            return stats
+        finally:
+            await engine.dispose()
+
+    stats = asyncio.run(_run())
+    return {
+        "statusCode": 200,
+        "body": json.dumps({"message": "GTFS import complete", "stats": stats}),
+    }

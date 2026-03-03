@@ -72,3 +72,20 @@ async def test_run_import_orchestrates_pipeline(fake_gtfs_dir: Path):
     assert stats["agency"] == 1
     assert stats["stops"] == 1
     mock_load.assert_called_once()
+
+
+@patch("better_transit.gtfs.importer.run_import", new_callable=AsyncMock)
+@patch("better_transit.gtfs.importer.create_async_engine")
+def test_lambda_handler(mock_engine, mock_run_import):
+    """Lambda handler creates engine from settings and runs import."""
+    mock_run_import.return_value = {"agency": 1}
+    mock_dispose = AsyncMock()
+    mock_engine.return_value.dispose = mock_dispose
+
+    from better_transit.gtfs.importer import lambda_handler
+
+    result = lambda_handler({}, None)
+
+    mock_engine.assert_called_once()
+    mock_run_import.assert_called_once()
+    assert result["statusCode"] == 200
