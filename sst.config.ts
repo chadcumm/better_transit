@@ -39,7 +39,7 @@ export default $config({
 
     const apiFn = new sst.aws.Function("FastApi", {
       runtime: "python3.12",
-      handler: "../api/src/better_transit/handler.handler",
+      handler: "api/src/better_transit/handler.handler",
       url: false,
       timeout: "30 seconds",
       memory: "512 MB",
@@ -61,7 +61,7 @@ export default $config({
       schedule: "cron(0 12 * * ? *)", // 12:00 UTC = 6:00 AM CT
       function: {
         runtime: "python3.12",
-        handler: "../api/src/better_transit/gtfs/importer.lambda_handler",
+        handler: "api/src/better_transit/gtfs/importer.lambda_handler",
         timeout: "300 seconds",
         memory: "1024 MB",
         python: {

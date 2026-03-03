@@ -37,11 +37,11 @@ jobs:
           python-version: "3.12"
 
       - name: Install SST dependencies
-        working-directory: infra
+        working-directory: .
         run: npm ci
 
       - name: Set SST secrets
-        working-directory: infra
+        working-directory: .
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -50,7 +50,7 @@ jobs:
           npx sst secret set GtfsRtApiKey "${{ secrets.GTFS_RT_API_KEY }}" --stage production
 
       - name: Deploy to production
-        working-directory: infra
+        working-directory: .
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
