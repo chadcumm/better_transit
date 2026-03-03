@@ -13,3 +13,7 @@ FROM public.ecr.aws/lambda/python:3.12
 COPY --from=build ${LAMBDA_TASK_ROOT} ${LAMBDA_TASK_ROOT}
 
 COPY . ${LAMBDA_TASK_ROOT}
+
+# SST sets the handler to api.src.better_transit.handler.handler
+# based on the file path. Create __init__.py so the import path works.
+RUN touch ${LAMBDA_TASK_ROOT}/api/__init__.py ${LAMBDA_TASK_ROOT}/api/src/__init__.py
