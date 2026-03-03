@@ -123,6 +123,7 @@ def sample_data():
     }
 
 
+@pytest.mark.slow
 @pytest.mark.asyncio
 async def test_load_gtfs_data(db_session, sample_data):
     engine, session_factory = db_session
@@ -139,6 +140,7 @@ async def test_load_gtfs_data(db_session, sample_data):
     assert stats["shape_geoms"] == 1
 
 
+@pytest.mark.slow
 @pytest.mark.asyncio
 async def test_load_creates_shape_geom(db_session, sample_data):
     engine, session_factory = db_session
@@ -151,6 +153,7 @@ async def test_load_creates_shape_geom(db_session, sample_data):
     assert rows[0][0] == "S1"
 
 
+@pytest.mark.slow
 @pytest.mark.asyncio
 async def test_load_creates_stop_geometry(db_session, sample_data):
     engine, session_factory = db_session
@@ -165,6 +168,7 @@ async def test_load_creates_stop_geometry(db_session, sample_data):
     assert "POINT" in row[0]
 
 
+@pytest.mark.slow
 @pytest.mark.asyncio
 async def test_load_is_idempotent(db_session, sample_data):
     """Running load twice should truncate and re-insert, not duplicate."""
