@@ -21,8 +21,8 @@ export default $config({
     // --- Domain ---
     const domain =
       $app.stage === "production"
-        ? "nextstopkc.app"
-        : `${$app.stage}.nextstopkc.app`;
+        ? "nextstopkc.us"
+        : `${$app.stage}.nextstopkc.us`;
 
     // --- API Gateway + Lambda ---
     const api = new sst.aws.ApiGatewayV2("Api", {
