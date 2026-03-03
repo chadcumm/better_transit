@@ -7,14 +7,13 @@ RUN dnf install -y geos geos-devel proj proj-devel && dnf clean all
 COPY --from=ghcr.io/astral-sh/uv:0.6 /uv /usr/local/bin/uv
 
 # Copy dependency files first for layer caching
-# Build context is repo root (SST workspace), so prefix with api/
-COPY api/pyproject.toml api/uv.lock ./
+COPY pyproject.toml uv.lock ./
 
 # Install production dependencies only (no dev deps)
 RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy application source
-COPY api/src/ src/
+COPY src/ src/
 
 # Install the project itself
 RUN uv sync --frozen --no-dev
