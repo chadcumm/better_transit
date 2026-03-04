@@ -25,6 +25,37 @@ _raptor_cache: dict[str, tuple[float, RaptorData]] = {}
 CACHE_TTL_SECONDS = 300  # 5 minutes
 
 
+def _group_into_patterns(
+    route_id: str,
+    trips: list[TripSchedule],
+) -> list[tuple[str, list[str], list[TripSchedule]]]:
+    """Group trips by their stop pattern and assign pattern IDs.
+
+    Returns a list of (pattern_id, ordered_stops, sorted_trips) tuples.
+    The most common pattern gets index 0 (ties broken by longest pattern).
+    Trips within each pattern are sorted by departure from first stop.
+    """
+    by_pattern: dict[tuple[str, ...], list[TripSchedule]] = defaultdict(list)
+    for trip in trips:
+        key = tuple(st.stop_id for st in trip.stop_times)
+        by_pattern[key].append(trip)
+
+    # Sort patterns: most trips first, then longest pattern as tiebreaker
+    sorted_patterns = sorted(
+        by_pattern.items(),
+        key=lambda item: (-len(item[1]), -len(item[0])),
+    )
+
+    result = []
+    for idx, (stop_tuple, pattern_trips) in enumerate(sorted_patterns):
+        pattern_id = f"{route_id}_p{idx}"
+        # Sort trips by departure from first stop
+        pattern_trips.sort(key=lambda ts: ts.stop_times[0].departure)
+        result.append((pattern_id, list(stop_tuple), pattern_trips))
+
+    return result
+
+
 async def get_raptor_data(
     session: AsyncSession,
     date: datetime.date,
@@ -101,15 +132,8 @@ async def build_raptor_data(
         route_trips[trip.route_id].append(trip)
 
     for route_id, route_trips_list in route_trips.items():
-        # Build ordered stop list from first trip
-        first_trip = route_trips_list[0]
-        sts = trip_stop_times.get(first_trip.trip_id, [])
-        if not sts:
-            continue
-
-        ordered_stops = [st.stop_id for st in sts]
-
-        trip_schedules = []
+        # Build TripSchedule objects for each trip
+        all_schedules = []
         for trip in route_trips_list:
             trip_sts = trip_stop_times.get(trip.trip_id, [])
             if not trip_sts:
@@ -122,24 +146,32 @@ async def build_raptor_data(
                 )
                 for st in trip_sts
             ]
-            trip_schedules.append(TripSchedule(
+            all_schedules.append(TripSchedule(
                 trip_id=trip.trip_id,
                 route_id=route_id,
                 stop_times=raptor_sts,
             ))
 
-        # Sort trips by departure from first stop
-        trip_schedules.sort(key=lambda ts: ts.stop_times[0].departure)
+        if not all_schedules:
+            continue
 
-        routes_by_id[route_id] = TransitRoute(
-            route_id=route_id,
-            stops=ordered_stops,
-            trips=trip_schedules,
-        )
+        # Group into patterns by stop sequence
+        patterns = _group_into_patterns(route_id, all_schedules)
 
-        for stop_id in ordered_stops:
-            stop_routes[stop_id].add(route_id)
-            all_stop_ids.add(stop_id)
+        for pattern_id, ordered_stops, pattern_trips in patterns:
+            # Update route_id in each TripSchedule to the pattern ID
+            for ts in pattern_trips:
+                ts.route_id = pattern_id
+
+            routes_by_id[pattern_id] = TransitRoute(
+                route_id=pattern_id,
+                stops=ordered_stops,
+                trips=pattern_trips,
+            )
+
+            for stop_id in ordered_stops:
+                stop_routes[stop_id].add(pattern_id)
+                all_stop_ids.add(stop_id)
 
     # Build transfer graph (walking between nearby stops)
     transfers = await _build_transfers(session, all_stop_ids)
