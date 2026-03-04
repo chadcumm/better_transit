@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter
 
 from better_transit.models.alerts import AlertResponse
@@ -9,7 +11,7 @@ router = APIRouter(prefix="/alerts", tags=["alerts"])
 @router.get("", response_model=list[AlertResponse])
 async def list_alerts():
     """List active service alerts from GTFS-RT feed."""
-    alerts = fetch_service_alerts()
+    alerts = await asyncio.to_thread(fetch_service_alerts)
     return [
         AlertResponse(
             alert_id=a["alert_id"],

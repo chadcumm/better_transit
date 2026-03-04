@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -108,7 +109,7 @@ async def route_vehicles(
     if not route:
         raise HTTPException(status_code=404, detail="Route not found")
 
-    all_positions = fetch_vehicle_positions()
+    all_positions = await asyncio.to_thread(fetch_vehicle_positions)
     route_positions = [vp for vp in all_positions if vp.get("route_id") == route_id]
 
     return [

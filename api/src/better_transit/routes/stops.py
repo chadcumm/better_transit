@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import logging
 
@@ -94,7 +95,8 @@ async def nearby_stops(
     current_time = now.strftime("%H:%M:%S")
     service_ids = await get_active_service_ids(session, today)
 
-    rt_index = _build_rt_index(fetch_trip_updates())
+    trip_updates = await asyncio.to_thread(fetch_trip_updates)
+    rt_index = _build_rt_index(trip_updates)
 
     results = []
     for stop in stops:
@@ -174,6 +176,7 @@ async def stop_arrivals(
         session, stop_id, service_ids, after_time=current_time, limit=limit
     )
 
-    rt_index = _build_rt_index(fetch_trip_updates())
+    trip_updates = await asyncio.to_thread(fetch_trip_updates)
+    rt_index = _build_rt_index(trip_updates)
 
     return [_make_arrival(d, today, rt_index, stop_id) for d in departures]
