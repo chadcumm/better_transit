@@ -23,6 +23,81 @@ from better_transit.routing.results import extract_journeys
 
 
 @pytest.fixture
+def network_with_express() -> RaptorData:
+    """Network where Route A has a local and express pattern.
+
+    Route A local:   S1 -> S2 -> S3  (trips A1, A2)
+    Route A express: S1 -> S3        (trip AX1, faster — skips S2)
+    Route B:         S3 -> S4 -> S5
+    """
+    # Local pattern: S1 -> S2 -> S3
+    route_a_local = TransitRoute(
+        route_id="A_p0",
+        stops=["S1", "S2", "S3"],
+        trips=[
+            TripSchedule(
+                trip_id="A1",
+                route_id="A_p0",
+                stop_times=[
+                    StopTime("S1", 28800, 28800),   # 8:00
+                    StopTime("S2", 29100, 29100),   # 8:05
+                    StopTime("S3", 29400, 29400),   # 8:10
+                ],
+            ),
+        ],
+    )
+
+    # Express pattern: S1 -> S3 (skips S2)
+    route_a_express = TransitRoute(
+        route_id="A_p1",
+        stops=["S1", "S3"],
+        trips=[
+            TripSchedule(
+                trip_id="AX1",
+                route_id="A_p1",
+                stop_times=[
+                    StopTime("S1", 28800, 28800),   # 8:00
+                    StopTime("S3", 29220, 29220),   # 8:07 (faster)
+                ],
+            ),
+        ],
+    )
+
+    route_b = TransitRoute(
+        route_id="B",
+        stops=["S3", "S4", "S5"],
+        trips=[
+            TripSchedule(
+                trip_id="B1",
+                route_id="B",
+                stop_times=[
+                    StopTime("S3", 29700, 29700),   # 8:15
+                    StopTime("S4", 30000, 30000),   # 8:20
+                    StopTime("S5", 30300, 30300),   # 8:25
+                ],
+            ),
+        ],
+    )
+
+    return RaptorData(
+        routes={
+            "A_p0": route_a_local,
+            "A_p1": route_a_express,
+            "B": route_b,
+        },
+        stop_routes={
+            "S1": ["A_p0", "A_p1"],
+            "S2": ["A_p0"],
+            "S3": ["A_p0", "A_p1", "B"],
+            "S4": ["B"],
+            "S5": ["B"],
+        },
+        transfers={},
+        all_stop_ids={"S1", "S2", "S3", "S4", "S5"},
+    )
+
+
+@pytest.fixture
 def network() -> RaptorData:
     """Build a synthetic test transit network."""
     route_a = TransitRoute(
@@ -193,6 +268,23 @@ def test_departure_after_last_service(network):
         for leg in j:
             if leg.get("arrival_time"):
                 assert leg["arrival_time"] >= 32400
+
+
+def test_express_trip_is_routable(network_with_express):
+    """Express trip (skips S2) should be usable for routing S1->S3."""
+    result = run_raptor(network_with_express, ["S1"], ["S3"], 28800)  # 8:00
+    journeys = extract_journeys(result)
+
+    # Should find a journey arriving at 8:07 via express trip AX1
+    assert len(journeys) >= 1
+    express_found = any(
+        any(
+            leg["mode"] == "transit" and leg.get("trip_id") == "AX1"
+            for leg in j
+        )
+        for j in journeys
+    )
+    assert express_found, "Express trip AX1 should be usable"
 
 
 def test_time_str_to_seconds():
