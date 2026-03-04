@@ -7,7 +7,7 @@ from better_transit.db import get_session
 from better_transit.gtfs.queries import get_nearby_stops
 from better_transit.gtfs.time_utils import KANSAS_CITY_TZ, now_kansas_city
 from better_transit.models.trips import TripLeg, TripPlanRequest, TripPlanResponse
-from better_transit.routing.builder import build_raptor_data
+from better_transit.routing.builder import get_raptor_data
 from better_transit.routing.raptor import run_raptor
 from better_transit.routing.results import extract_journeys
 
@@ -49,7 +49,7 @@ async def plan_trip(
     target_ids = [s["stop_id"] for s in dest_stops]
 
     # Build RAPTOR data and run algorithm
-    raptor_data = await build_raptor_data(session, today)
+    raptor_data = await get_raptor_data(session, today)
     if not raptor_data.routes:
         return []
 

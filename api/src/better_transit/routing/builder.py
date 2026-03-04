@@ -1,6 +1,7 @@
 """Build RAPTOR data structures from database queries."""
 
 import datetime
+import time
 from collections import defaultdict
 
 from sqlalchemy import select
@@ -18,6 +19,39 @@ from better_transit.routing.data import (
 from better_transit.routing.data import StopTime as RaptorStopTime
 
 WALK_SPEED_MPS = 1.2  # Average walking speed: ~4.3 km/h
+
+# Module-level cache: keyed by ISO date string, value is (timestamp, RaptorData)
+_raptor_cache: dict[str, tuple[float, RaptorData]] = {}
+CACHE_TTL_SECONDS = 300  # 5 minutes
+
+
+async def get_raptor_data(
+    session: AsyncSession,
+    date: datetime.date,
+) -> RaptorData:
+    """Get RAPTOR data for a date, using a module-level cache with TTL.
+
+    Cache key is the ISO date string. Rebuilds if:
+    - No cached entry for this date
+    - Cached entry is older than CACHE_TTL_SECONDS
+    """
+    key = date.isoformat()
+    now = time.monotonic()
+
+    if key in _raptor_cache:
+        cached_time, cached_data = _raptor_cache[key]
+        if now - cached_time < CACHE_TTL_SECONDS:
+            return cached_data
+
+    data = await build_raptor_data(session, date)
+    _raptor_cache[key] = (now, data)
+
+    # Evict stale entries for other dates
+    stale_keys = [k for k, (t, _) in _raptor_cache.items() if now - t >= CACHE_TTL_SECONDS]
+    for k in stale_keys:
+        del _raptor_cache[k]
+
+    return data
 
 
 async def build_raptor_data(

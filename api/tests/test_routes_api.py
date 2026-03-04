@@ -30,7 +30,7 @@ def test_list_alerts_returns_empty():
 # --- /trips/plan ---
 
 
-@patch("better_transit.routes.trips.build_raptor_data")
+@patch("better_transit.routes.trips.get_raptor_data")
 @patch("better_transit.routes.trips.get_nearby_stops")
 def test_plan_trip_no_stops(mock_nearby, mock_raptor):
     """When no nearby stops found, returns empty list."""
