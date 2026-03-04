@@ -157,6 +157,89 @@ async def get_routes_for_stop(
     ]
 
 
+async def get_routes_for_stops(
+    session: AsyncSession,
+    stop_ids: list[str],
+) -> dict[str, list[dict]]:
+    """Get distinct routes serving each stop in a batch query.
+
+    Returns a dict keyed by stop_id, each value a list of route dicts.
+    """
+    if not stop_ids:
+        return {}
+
+    stmt = (
+        select(
+            StopTime.stop_id,
+            Route.route_id,
+            Route.route_short_name,
+            Route.route_long_name,
+        )
+        .join(Trip, Route.route_id == Trip.route_id)
+        .join(StopTime, Trip.trip_id == StopTime.trip_id)
+        .where(StopTime.stop_id.in_(stop_ids))
+        .distinct()
+        .order_by(StopTime.stop_id, Route.route_short_name)
+    )
+    result = await session.execute(stmt)
+
+    grouped: dict[str, list[dict]] = {sid: [] for sid in stop_ids}
+    for row in result.all():
+        grouped[row.stop_id].append({
+            "route_id": row.route_id,
+            "route_short_name": row.route_short_name,
+            "route_long_name": row.route_long_name,
+        })
+    return grouped
+
+
+async def get_stop_times_for_stops(
+    session: AsyncSession,
+    stop_ids: list[str],
+    service_ids: list[str],
+    after_time: str | None = None,
+    limit_per_stop: int = 3,
+) -> dict[str, list[dict]]:
+    """Get upcoming departures at multiple stops in a batch query.
+
+    Returns a dict keyed by stop_id, each value a list of departure dicts
+    (up to limit_per_stop per stop).
+    """
+    if not stop_ids or not service_ids:
+        return {}
+
+    stmt = (
+        select(StopTime, Trip.route_id, Trip.trip_headsign)
+        .join(Trip, StopTime.trip_id == Trip.trip_id)
+        .where(
+            and_(
+                StopTime.stop_id.in_(stop_ids),
+                Trip.service_id.in_(service_ids),
+            )
+        )
+    )
+    if after_time:
+        stmt = stmt.where(StopTime.departure_time >= after_time)
+
+    stmt = stmt.order_by(StopTime.stop_id, StopTime.departure_time)
+    result = await session.execute(stmt)
+
+    grouped: dict[str, list[dict]] = {sid: [] for sid in stop_ids}
+    for row in result.all():
+        sid = row.StopTime.stop_id
+        if len(grouped[sid]) >= limit_per_stop:
+            continue
+        grouped[sid].append({
+            "trip_id": row.StopTime.trip_id,
+            "route_id": row.route_id,
+            "headsign": row.trip_headsign,
+            "arrival_time": row.StopTime.arrival_time,
+            "departure_time": row.StopTime.departure_time,
+            "stop_sequence": row.StopTime.stop_sequence,
+        })
+    return grouped
+
+
 async def get_shape_id_for_route(
     session: AsyncSession,
     route_id: str,

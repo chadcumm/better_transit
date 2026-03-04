@@ -158,8 +158,8 @@ def test_route_detail(
 
 
 @patch("better_transit.routes.stops.fetch_trip_updates", return_value=[])
-@patch("better_transit.routes.stops.get_stop_times_for_stop")
-@patch("better_transit.routes.stops.get_routes_for_stop")
+@patch("better_transit.routes.stops.get_stop_times_for_stops")
+@patch("better_transit.routes.stops.get_routes_for_stops")
 @patch("better_transit.routes.stops.get_active_service_ids")
 @patch("better_transit.routes.stops.get_nearby_stops")
 def test_nearby_stops(
@@ -175,19 +175,23 @@ def test_nearby_stops(
         }
     ]
     mock_service_ids.return_value = ["WK"]
-    mock_routes.return_value = [
-        {"route_id": "101", "route_short_name": "101", "route_long_name": "State"}
-    ]
-    mock_stop_times.return_value = [
-        {
-            "trip_id": "T1",
-            "route_id": "101",
-            "headsign": "Downtown",
-            "arrival_time": "08:00:00",
-            "departure_time": "08:01:00",
-            "stop_sequence": 1,
-        }
-    ]
+    mock_routes.return_value = {
+        "1": [
+            {"route_id": "101", "route_short_name": "101", "route_long_name": "State"}
+        ]
+    }
+    mock_stop_times.return_value = {
+        "1": [
+            {
+                "trip_id": "T1",
+                "route_id": "101",
+                "headsign": "Downtown",
+                "arrival_time": "08:00:00",
+                "departure_time": "08:01:00",
+                "stop_sequence": 1,
+            }
+        ]
+    }
 
     mock_session = AsyncMock()
     app.dependency_overrides[get_session] = _override_session(mock_session)

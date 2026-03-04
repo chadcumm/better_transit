@@ -9,9 +9,10 @@ from better_transit.db import get_session
 from better_transit.gtfs.queries import (
     get_active_service_ids,
     get_nearby_stops,
-    get_routes_for_stop,
+    get_routes_for_stops,
     get_stop_by_id,
     get_stop_times_for_stop,
+    get_stop_times_for_stops,
 )
 from better_transit.gtfs.time_utils import gtfs_time_to_datetime, now_kansas_city
 from better_transit.models.arrivals import ArrivalResponse
@@ -95,31 +96,37 @@ async def nearby_stops(
     current_time = now.strftime("%H:%M:%S")
     service_ids = await get_active_service_ids(session, today)
 
+    stop_ids = [s["stop_id"] for s in stops]
+
+    # Batch queries: 2 queries instead of 2N
     trip_updates = await asyncio.to_thread(fetch_trip_updates)
     rt_index = _build_rt_index(trip_updates)
+
+    routes_by_stop = await get_routes_for_stops(session, stop_ids)
+
+    arrivals_by_stop: dict[str, list[dict]] = {}
+    if service_ids:
+        arrivals_by_stop = await get_stop_times_for_stops(
+            session, stop_ids, service_ids, after_time=current_time
+        )
 
     results = []
     for stop in stops:
         sid = stop["stop_id"]
 
-        routes = await get_routes_for_stop(session, sid)
         route_models = [
             StopRouteResponse(
                 route_id=r["route_id"],
                 route_short_name=r["route_short_name"],
                 route_long_name=r["route_long_name"],
             )
-            for r in routes
+            for r in routes_by_stop.get(sid, [])
         ]
 
-        next_arrivals = []
-        if service_ids:
-            departures = await get_stop_times_for_stop(
-                session, sid, service_ids, after_time=current_time, limit=3
-            )
-            next_arrivals = [
-                _make_arrival(d, today, rt_index, sid) for d in departures
-            ]
+        next_arrivals = [
+            _make_arrival(d, today, rt_index, sid)
+            for d in arrivals_by_stop.get(sid, [])
+        ]
 
         results.append(
             NearbyStopResponse(
