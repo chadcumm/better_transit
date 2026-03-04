@@ -87,7 +87,9 @@ async def load_gtfs_data(
     async with engine.begin() as conn:
         # Truncate all tables
         for table_name in TRUNCATE_ORDER:
-            await conn.execute(text(f"TRUNCATE TABLE {table_name} CASCADE"))
+            if table_name not in TRUNCATE_ORDER:
+                raise ValueError(f"Unknown table name: {table_name!r}")
+            await conn.execute(text(f"TRUNCATE TABLE {table_name}"))
         logger.info("Truncated all GTFS tables")
 
         # Insert each table
