@@ -7,4 +7,4 @@ class VehiclePositionResponse(BaseModel):
     route_id: str | None = None
     latitude: float | None = None
     longitude: float | None = None
-    timestamp: int | None = None
+    timestamp: str | None = None

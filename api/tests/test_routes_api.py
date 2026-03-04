@@ -436,7 +436,7 @@ def test_route_vehicles(mock_get_route, mock_vp):
             "route_id": "101",
             "latitude": 39.1,
             "longitude": -94.5,
-            "timestamp": 1709337600,
+            "timestamp": "2024-03-02T00:00:00-06:00",
         },
         {
             "vehicle_id": "BUS-99",
@@ -444,7 +444,7 @@ def test_route_vehicles(mock_get_route, mock_vp):
             "route_id": "202",
             "latitude": 39.2,
             "longitude": -94.6,
-            "timestamp": 1709337600,
+            "timestamp": "2024-03-02T00:00:00-06:00",
         },
     ]
 
