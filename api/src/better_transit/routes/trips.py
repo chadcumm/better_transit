@@ -16,6 +16,19 @@ router = APIRouter(prefix="/trips", tags=["trips"])
 WALK_RADIUS_M = 800
 
 
+def _strip_pattern_suffix(route_id: str) -> str:
+    """Strip the _pN pattern suffix from a synthetic route pattern ID.
+
+    The RAPTOR builder creates IDs like '101_p0', '101_p1' for route patterns.
+    The API should return the original GTFS route_id ('101').
+    """
+    if "_p" in route_id:
+        base, _, suffix = route_id.rpartition("_p")
+        if suffix.isdigit():
+            return base
+    return route_id
+
+
 @router.post("/plan", response_model=list[TripPlanResponse])
 async def plan_trip(
     request: TripPlanRequest,
@@ -91,7 +104,9 @@ async def plan_trip(
                     mode="transit",
                     from_stop_id=leg.get("from_stop_id"),
                     to_stop_id=leg.get("to_stop_id"),
-                    route_id=leg.get("route_id"),
+                    route_id=_strip_pattern_suffix(
+                        leg.get("route_id", "")
+                    ),
                     departure_time=_seconds_to_iso(board_time, today),
                     arrival_time=_seconds_to_iso(alight_time, today),
                 ))

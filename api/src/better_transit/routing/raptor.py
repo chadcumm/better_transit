@@ -128,9 +128,6 @@ def _scan_route(
     num_stops = len(route.stops)
 
     for trip in route.trips:
-        if len(trip.stop_times) != num_stops:
-            continue  # Skip trips with mismatched stop count
-
         # Find the earliest trip we can board at any improved stop
         boarded = False
         board_stop = None
