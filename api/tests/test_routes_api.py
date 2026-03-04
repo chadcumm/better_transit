@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from better_transit.db import get_session
 from better_transit.main import app
+from better_transit.routes.trips import _strip_pattern_suffix
 
 
 def _override_session(mock_session):
@@ -475,3 +476,12 @@ def test_route_vehicles_not_found(mock_get_route):
         assert response.status_code == 404
     finally:
         app.dependency_overrides.clear()
+
+
+def test_strip_pattern_suffix():
+    assert _strip_pattern_suffix("101_p0") == "101"
+    assert _strip_pattern_suffix("101_p1") == "101"
+    assert _strip_pattern_suffix("MAX_p12") == "MAX"
+    assert _strip_pattern_suffix("101") == "101"
+    assert _strip_pattern_suffix("route_purple") == "route_purple"
+    assert _strip_pattern_suffix("A_p0") == "A"
