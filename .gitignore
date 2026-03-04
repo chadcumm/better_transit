@@ -29,6 +29,11 @@ node_modules/
 .sst/
 .build/
 
+# Angular
+web/node_modules/
+web/.angular/
+web/dist/
+
 # IDE
 .vscode/
 .idea/
