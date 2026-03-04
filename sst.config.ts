@@ -74,9 +74,29 @@ export default $config({
       },
     });
 
+    // --- Web App (Static Site) ---
+    const webDomain =
+      $app.stage === "production"
+        ? "app.nextstopkc.us"
+        : `app-${$app.stage}.nextstopkc.us`;
+
+    const web = new sst.aws.StaticSite("Web", {
+      path: "web",
+      build: {
+        command: "npm run build",
+        output: "dist/web/browser",
+      },
+      domain: {
+        name: webDomain,
+        dns: sst.aws.dns(),
+      },
+    });
+
     return {
       api: api.url,
       domain: domain,
+      web: web.url,
+      webDomain: webDomain,
     };
   },
 });

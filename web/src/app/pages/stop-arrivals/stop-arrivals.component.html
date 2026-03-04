@@ -1,0 +1,57 @@
+<div class="arrivals-container">
+  <div class="header">
+    <a mat-icon-button routerLink="/">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <h1>Stop {{ stopId }}</h1>
+  </div>
+
+  @if (loading()) {
+    <div class="loading">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading arrivals...</p>
+    </div>
+  }
+
+  @if (error(); as errorMsg) {
+    <div class="error">
+      <mat-icon>error</mat-icon>
+      <p>{{ errorMsg }}</p>
+    </div>
+  }
+
+  @for (group of groupedArrivals(); track group.route_id) {
+    <mat-card class="route-group">
+      <mat-card-header>
+        <mat-card-title>
+          <span class="route-badge">{{ group.route_id }}</span>
+        </mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        @for (arrival of group.arrivals; track arrival.trip_id) {
+          <div class="arrival-row">
+            <div class="arrival-info">
+              <span class="headsign">{{ arrival.headsign || 'Unknown' }}</span>
+              @if (formatDelay(arrival.delay_seconds); as delay) {
+                <span class="delay">{{ delay }}</span>
+              }
+            </div>
+            <div class="arrival-time">
+              <span class="countdown" [class.realtime]="arrival.is_realtime">
+                {{ minutesUntil(arrival) }}
+              </span>
+              @if (arrival.is_realtime) {
+                <mat-icon class="rt-icon">gps_fixed</mat-icon>
+              }
+            </div>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+
+  @if (!loading() && !error() && groupedArrivals().length === 0) {
+    <p class="no-arrivals">No upcoming arrivals at this stop.</p>
+  }
+</div>
