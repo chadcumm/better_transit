@@ -268,6 +268,13 @@ async def get_trips_for_route(
     return list(result.scalars().all())
 
 
+# NOTE: Midnight–5 AM limitation
+# GTFS allows departure times > 24:00:00 for overnight service (e.g., 25:30:00
+# means 1:30 AM the next day). Between midnight and ~5 AM, we resolve today's
+# service_ids, but overnight trips belong to yesterday's service. Those trips
+# are invisible to the arrivals query during this window. To fix, we'd need to
+# also resolve yesterday's services during early-morning hours. Accepted as a
+# known limitation — KCATA has minimal overnight service.
 async def get_active_service_ids(
     session: AsyncSession,
     date: datetime.date,
