@@ -22,7 +22,7 @@
                         │                      ┌────────▼────────┐  │
                         │                      │  PostgreSQL     │  │
                         │                      │  + PostGIS      │  │
-                        │                      │  (Aurora        │  │
+                        │                      │  (Neon          │  │
                         │                      │   Serverless)   │  │
                         │                      └─────────────────┘  │
                         │                                           │
@@ -109,12 +109,12 @@ Primary data store for all GTFS data and application state.
 
 ### Infrastructure (SST)
 
-All AWS resources managed via SST (Serverless Stack Toolkit).
+All AWS resources managed via SST (Serverless Stack Toolkit). SST configuration is defined in `sst.config.ts` at the repository root.
 
 **Resources:**
 - **API Gateway** — HTTP API fronting the Lambda
 - **Lambda** — FastAPI app via Mangum adapter
-- **Aurora Serverless v2** — PostgreSQL + PostGIS
+- **Neon PostgreSQL** — Serverless PostgreSQL + PostGIS
 - **Scheduled Lambdas** — GTFS import and RT fetch on cron
 - **S3** — GTFS static file storage (optional, for archive)
 

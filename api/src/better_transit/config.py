@@ -2,6 +2,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    # Dev-only default — overridden by DATABASE_URL env var in staging/production.
+    # The dev credentials (better_transit:dev) are only valid for the local
+    # docker-compose PostgreSQL instance and pose no security risk.
     database_url: str = (
         "postgresql+asyncpg://better_transit:dev@localhost:5432/better_transit"
     )

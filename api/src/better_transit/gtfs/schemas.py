@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 def _empty_to_none(v: str | None) -> str | None:
@@ -8,13 +8,13 @@ def _empty_to_none(v: str | None) -> str | None:
 
 
 class AgencyRow(BaseModel):
-    agency_id: str
-    agency_name: str
-    agency_url: str
-    agency_timezone: str
-    agency_lang: str | None = None
-    agency_phone: str | None = None
-    agency_fare_url: str | None = None
+    agency_id: str = Field(max_length=200)
+    agency_name: str = Field(max_length=500)
+    agency_url: str = Field(max_length=1000)
+    agency_timezone: str = Field(max_length=100)
+    agency_lang: str | None = Field(default=None, max_length=100)
+    agency_phone: str | None = Field(default=None, max_length=100)
+    agency_fare_url: str | None = Field(default=None, max_length=1000)
 
     _clean = field_validator(
         "agency_lang", "agency_phone", "agency_fare_url", mode="before"
@@ -22,15 +22,15 @@ class AgencyRow(BaseModel):
 
 
 class RouteRow(BaseModel):
-    route_id: str
-    agency_id: str
-    route_short_name: str | None = None
-    route_long_name: str | None = None
-    route_desc: str | None = None
+    route_id: str = Field(max_length=200)
+    agency_id: str = Field(max_length=200)
+    route_short_name: str | None = Field(default=None, max_length=200)
+    route_long_name: str | None = Field(default=None, max_length=500)
+    route_desc: str | None = Field(default=None, max_length=1000)
     route_type: int
-    route_url: str | None = None
-    route_color: str | None = None
-    route_text_color: str | None = None
+    route_url: str | None = Field(default=None, max_length=1000)
+    route_color: str | None = Field(default=None, max_length=10)
+    route_text_color: str | None = Field(default=None, max_length=10)
 
     _clean = field_validator(
         "route_short_name",
@@ -44,17 +44,17 @@ class RouteRow(BaseModel):
 
 
 class StopRow(BaseModel):
-    stop_id: str
-    stop_code: str | None = None
-    stop_name: str
-    stop_desc: str | None = None
+    stop_id: str = Field(max_length=200)
+    stop_code: str | None = Field(default=None, max_length=200)
+    stop_name: str = Field(max_length=500)
+    stop_desc: str | None = Field(default=None, max_length=1000)
     stop_lat: float
     stop_lon: float
-    zone_id: str | None = None
-    stop_url: str | None = None
+    zone_id: str | None = Field(default=None, max_length=200)
+    stop_url: str | None = Field(default=None, max_length=1000)
     location_type: int | None = None
-    parent_station: str | None = None
-    stop_timezone: str | None = None
+    parent_station: str | None = Field(default=None, max_length=200)
+    stop_timezone: str | None = Field(default=None, max_length=100)
     wheelchair_boarding: int | None = None
 
     _clean = field_validator(
@@ -76,14 +76,14 @@ class StopRow(BaseModel):
 
 
 class TripRow(BaseModel):
-    route_id: str
-    service_id: str
-    trip_id: str
-    trip_headsign: str | None = None
-    trip_short_name: str | None = None
+    route_id: str = Field(max_length=200)
+    service_id: str = Field(max_length=200)
+    trip_id: str = Field(max_length=200)
+    trip_headsign: str | None = Field(default=None, max_length=500)
+    trip_short_name: str | None = Field(default=None, max_length=200)
     direction_id: int | None = None
-    block_id: str | None = None
-    shape_id: str | None = None
+    block_id: str | None = Field(default=None, max_length=200)
+    shape_id: str | None = Field(default=None, max_length=200)
     wheelchair_accessible: int | None = None
     bikes_allowed: int | None = None
 
@@ -104,12 +104,12 @@ class TripRow(BaseModel):
 
 
 class StopTimeRow(BaseModel):
-    trip_id: str
-    arrival_time: str
-    departure_time: str
-    stop_id: str
+    trip_id: str = Field(max_length=200)
+    arrival_time: str = Field(max_length=20)
+    departure_time: str = Field(max_length=20)
+    stop_id: str = Field(max_length=200)
     stop_sequence: int
-    stop_headsign: str | None = None
+    stop_headsign: str | None = Field(default=None, max_length=500)
     pickup_type: int | None = None
     drop_off_type: int | None = None
     shape_dist_traveled: float | None = None
@@ -145,7 +145,7 @@ class StopTimeRow(BaseModel):
 
 
 class CalendarRow(BaseModel):
-    service_id: str
+    service_id: str = Field(max_length=200)
     monday: bool
     tuesday: bool
     wednesday: bool
@@ -153,18 +153,18 @@ class CalendarRow(BaseModel):
     friday: bool
     saturday: bool
     sunday: bool
-    start_date: str
-    end_date: str
+    start_date: str = Field(max_length=8)
+    end_date: str = Field(max_length=8)
 
 
 class CalendarDateRow(BaseModel):
-    service_id: str
-    date: str
+    service_id: str = Field(max_length=200)
+    date: str = Field(max_length=8)
     exception_type: int
 
 
 class ShapePointRow(BaseModel):
-    shape_id: str
+    shape_id: str = Field(max_length=200)
     shape_pt_lat: float
     shape_pt_lon: float
     shape_pt_sequence: int

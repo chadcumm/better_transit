@@ -84,10 +84,17 @@ async def load_gtfs_data(
     """
     stats: dict[str, int] = {}
 
+    # Single transaction for the entire import. If any table fails, all changes
+    # roll back — no partial state. This is acceptable because the GTFS import
+    # runs on a cron schedule (6 AM CT) with no concurrent traffic. The trade-off
+    # is that a failure mid-import requires a full re-run, but at KCATA scale
+    # (~200K rows total) the import completes in seconds.
     async with engine.begin() as conn:
         # Truncate all tables
         for table_name in TRUNCATE_ORDER:
-            await conn.execute(text(f"TRUNCATE TABLE {table_name} CASCADE"))
+            if table_name not in TRUNCATE_ORDER:
+                raise ValueError(f"Unknown table name: {table_name!r}")
+            await conn.execute(text(f"TRUNCATE TABLE {table_name}"))
         logger.info("Truncated all GTFS tables")
 
         # Insert each table

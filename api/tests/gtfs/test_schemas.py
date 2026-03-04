@@ -186,3 +186,45 @@ class TestShapePointRow:
             shape_dist_traveled=0.0,
         )
         assert row.shape_id == "4819"
+
+
+class TestMaxLengthConstraints:
+    def test_stop_name_max_length(self):
+        """Stop names longer than 500 chars should be rejected."""
+        with pytest.raises(ValidationError):
+            StopRow(
+                stop_id="1",
+                stop_name="A" * 501,
+                stop_lat=39.1,
+                stop_lon=-94.5,
+            )
+
+    def test_route_long_name_max_length(self):
+        """Route long names longer than 500 chars should be rejected."""
+        with pytest.raises(ValidationError):
+            RouteRow(
+                route_id="101",
+                agency_id="KCATA",
+                route_long_name="A" * 501,
+                route_type=3,
+            )
+
+    def test_trip_headsign_max_length(self):
+        """Trip headsigns longer than 500 chars should be rejected."""
+        with pytest.raises(ValidationError):
+            TripRow(
+                route_id="101",
+                service_id="WK",
+                trip_id="T1",
+                trip_headsign="A" * 501,
+            )
+
+    def test_stop_id_max_length(self):
+        """Stop IDs longer than 200 chars should be rejected."""
+        with pytest.raises(ValidationError):
+            StopRow(
+                stop_id="X" * 201,
+                stop_name="Test",
+                stop_lat=39.1,
+                stop_lon=-94.5,
+            )

@@ -3,7 +3,7 @@ import pytest_asyncio
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from better_transit.gtfs.loader import load_gtfs_data
+from better_transit.gtfs.loader import TRUNCATE_ORDER, load_gtfs_data
 from better_transit.gtfs.models import Base
 from better_transit.gtfs.schemas import (
     AgencyRow,
@@ -17,6 +17,15 @@ from better_transit.gtfs.schemas import (
 )
 
 TEST_DB_URL = "postgresql+asyncpg://better_transit:dev@localhost:5432/better_transit_test"
+
+
+def test_truncate_order_is_frozen():
+    """TRUNCATE_ORDER should contain exactly the expected tables."""
+    expected = {
+        "shape_geoms", "shapes", "stop_times", "calendar_dates",
+        "calendar", "trips", "stops", "routes", "agency",
+    }
+    assert set(TRUNCATE_ORDER) == expected
 
 
 @pytest_asyncio.fixture
