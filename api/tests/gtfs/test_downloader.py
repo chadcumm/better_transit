@@ -73,7 +73,8 @@ def test_download_aborts_if_too_large(tmp_path: Path):
     mock_response.__enter__ = lambda s: s
     mock_response.__exit__ = MagicMock(return_value=False)
 
-    with patch("better_transit.gtfs.downloader.urllib.request.urlopen", return_value=mock_response), \
+    urlopen = "better_transit.gtfs.downloader.urllib.request.urlopen"
+    with patch(urlopen, return_value=mock_response), \
          patch("better_transit.gtfs.downloader.MAX_DOWNLOAD_SIZE", small_limit):
         with pytest.raises(ValueError, match="size limit"):
             download_and_extract("https://example.com/gtfs.zip", tmp_path / "output")
@@ -92,7 +93,8 @@ def test_rejects_zip_bomb(tmp_path: Path):
     mock_response.__enter__ = lambda s: s
     mock_response.__exit__ = MagicMock(return_value=False)
 
-    with patch("better_transit.gtfs.downloader.urllib.request.urlopen", return_value=mock_response), \
+    urlopen = "better_transit.gtfs.downloader.urllib.request.urlopen"
+    with patch(urlopen, return_value=mock_response), \
          patch("better_transit.gtfs.downloader.MAX_UNCOMPRESSED_SIZE", 500_000):
         with pytest.raises(ValueError, match="uncompressed size"):
             download_and_extract("https://example.com/gtfs.zip", tmp_path / "output")

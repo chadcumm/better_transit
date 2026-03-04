@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from better_transit.routing.builder import get_raptor_data, _raptor_cache
+from better_transit.routing.builder import _raptor_cache, get_raptor_data
 
 
 @pytest.fixture(autouse=True)

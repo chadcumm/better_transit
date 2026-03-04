@@ -383,7 +383,9 @@ def test_route_detail_direction_param(
     mock_get_route.return_value = mock_route
 
     mock_shape_id.return_value = "S1_inbound"
-    mock_geojson.return_value = '{"type":"LineString","coordinates":[[-94.57,39.10],[-94.57,39.09]]}'
+    mock_geojson.return_value = (
+        '{"type":"LineString","coordinates":[[-94.57,39.10],[-94.57,39.09]]}'
+    )
     mock_services.return_value = ["WK"]
     mock_stops.return_value = [
         {
