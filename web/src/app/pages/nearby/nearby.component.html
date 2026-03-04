@@ -1,0 +1,56 @@
+<div class="nearby-container">
+  <h1>Nearby Stops</h1>
+
+  @if (loading()) {
+    <div class="loading">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Finding stops near you...</p>
+    </div>
+  }
+
+  @if (error(); as errorMsg) {
+    <div class="error">
+      <mat-icon>error</mat-icon>
+      <p>{{ errorMsg }}</p>
+    </div>
+  }
+
+  @for (stop of stops(); track stop.stop_id) {
+    <mat-card class="stop-card" [routerLink]="['/stops', stop.stop_id]">
+      <mat-card-header>
+        <mat-card-title>{{ stop.stop_name }}</mat-card-title>
+        <mat-card-subtitle>{{ formatDistance(stop.distance_meters) }} away</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        @if (stop.routes.length > 0) {
+          <div class="routes">
+            @for (route of stop.routes; track route.route_id) {
+              <span class="route-badge">{{ route.route_short_name || route.route_id }}</span>
+            }
+          </div>
+        }
+
+        @if (stop.next_arrivals.length > 0) {
+          <div class="arrivals">
+            @for (arrival of stop.next_arrivals; track arrival.trip_id) {
+              <div class="arrival-row">
+                <span class="route-name">{{ arrival.route_id }}</span>
+                <span class="headsign">{{ arrival.headsign }}</span>
+                <span class="time" [class.realtime]="arrival.is_realtime">
+                  {{ minutesUntil(arrival) }}
+                </span>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="no-arrivals">No upcoming arrivals</p>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+
+  @if (!loading() && !error() && stops().length === 0) {
+    <p class="no-stops">No stops found nearby.</p>
+  }
+</div>
