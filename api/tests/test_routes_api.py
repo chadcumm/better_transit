@@ -363,6 +363,59 @@ def test_stop_arrivals_with_realtime(
         app.dependency_overrides.clear()
 
 
+@patch("better_transit.routes.routes.get_stops_for_route")
+@patch("better_transit.routes.routes.get_active_service_ids")
+@patch("better_transit.routes.routes.get_shape_as_geojson")
+@patch("better_transit.routes.routes.get_shape_id_for_route")
+@patch("better_transit.routes.routes.get_route_by_id")
+def test_route_detail_direction_param(
+    mock_get_route, mock_shape_id, mock_geojson, mock_services, mock_stops
+):
+    """Direction query param is forwarded to both shape and stop queries."""
+    mock_route = MagicMock()
+    mock_route.route_id = "101"
+    mock_route.agency_id = "KCATA"
+    mock_route.route_short_name = "101"
+    mock_route.route_long_name = "State"
+    mock_route.route_type = 3
+    mock_route.route_color = None
+    mock_route.route_text_color = None
+    mock_get_route.return_value = mock_route
+
+    mock_shape_id.return_value = "S1_inbound"
+    mock_geojson.return_value = '{"type":"LineString","coordinates":[[-94.57,39.10],[-94.57,39.09]]}'
+    mock_services.return_value = ["WK"]
+    mock_stops.return_value = [
+        {
+            "stop_id": "2",
+            "stop_name": "Second St",
+            "stop_lat": 39.10,
+            "stop_lon": -94.57,
+            "stop_sequence": 1,
+            "arrival_time": "09:00:00",
+            "departure_time": "09:01:00",
+        }
+    ]
+
+    mock_session = AsyncMock()
+    app.dependency_overrides[get_session] = _override_session(mock_session)
+
+    try:
+        client = TestClient(app)
+        response = client.get("/routes/101?direction=1")
+        assert response.status_code == 200
+        # Verify direction_id=1 was passed to shape query
+        mock_shape_id.assert_called_once()
+        shape_call = mock_shape_id.call_args
+        assert shape_call.kwargs.get("direction_id") == 1
+        # Verify direction_id=1 was passed to stops query
+        mock_stops.assert_called_once()
+        stops_call = mock_stops.call_args
+        assert stops_call.kwargs.get("direction_id") == 1
+    finally:
+        app.dependency_overrides.clear()
+
+
 # --- /routes/{route_id}/vehicles ---
 
 

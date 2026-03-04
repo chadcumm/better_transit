@@ -160,13 +160,22 @@ async def get_routes_for_stop(
 async def get_shape_id_for_route(
     session: AsyncSession,
     route_id: str,
+    service_ids: list[str] | None = None,
+    direction_id: int | None = None,
 ) -> str | None:
-    """Get the first shape_id associated with a route (via its trips)."""
-    stmt = (
-        select(Trip.shape_id)
-        .where(and_(Trip.route_id == route_id, Trip.shape_id.is_not(None)))
-        .limit(1)
+    """Get the shape_id for a route from a representative trip.
+
+    When service_ids and direction_id are provided, picks a trip matching
+    those constraints for consistency with get_stops_for_route.
+    """
+    stmt = select(Trip.shape_id).where(
+        and_(Trip.route_id == route_id, Trip.shape_id.is_not(None))
     )
+    if service_ids:
+        stmt = stmt.where(Trip.service_id.in_(service_ids))
+    if direction_id is not None:
+        stmt = stmt.where(Trip.direction_id == direction_id)
+    stmt = stmt.limit(1)
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
 

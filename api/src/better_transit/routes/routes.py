@@ -1,7 +1,7 @@
 import asyncio
 import json
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from better_transit.db import get_session
@@ -48,6 +48,7 @@ async def list_routes(
 @router.get("/{route_id}", response_model=RouteDetailResponse)
 async def route_detail(
     route_id: str,
+    direction: int | None = Query(None, ge=0, le=1),
     session: AsyncSession = Depends(get_session),
 ):
     """Get route details with shape geometry and stop schedule."""
@@ -55,20 +56,28 @@ async def route_detail(
     if not route:
         raise HTTPException(status_code=404, detail="Route not found")
 
-    # Shape geometry as GeoJSON
+    today = now_kansas_city().date()
+    service_ids = await get_active_service_ids(session, today)
+
+    # Default to direction 0 (outbound) for consistency
+    dir_id = direction if direction is not None else 0
+
+    # Shape geometry — derived from the same direction's trip
     shape_geojson = None
-    shape_id = await get_shape_id_for_route(session, route_id)
+    shape_id = await get_shape_id_for_route(
+        session, route_id, service_ids=service_ids or None, direction_id=dir_id
+    )
     if shape_id:
         geojson_str = await get_shape_as_geojson(session, shape_id)
         if geojson_str:
             shape_geojson = json.loads(geojson_str)
 
-    # Stop schedule from a representative trip
-    today = now_kansas_city().date()
-    service_ids = await get_active_service_ids(session, today)
+    # Stop schedule — same direction's representative trip
     stops = []
     if service_ids:
-        stop_dicts = await get_stops_for_route(session, route_id, service_ids)
+        stop_dicts = await get_stops_for_route(
+            session, route_id, service_ids, direction_id=dir_id
+        )
         stops = [
             RouteStopResponse(
                 stop_id=s["stop_id"],
