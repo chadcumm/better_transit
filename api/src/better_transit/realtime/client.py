@@ -174,12 +174,23 @@ def _parse_trip_update(entity: gtfs_realtime_pb2.FeedEntity) -> dict[str, Any]:
 
 def _parse_vehicle_position(entity: gtfs_realtime_pb2.FeedEntity) -> dict[str, Any]:
     """Parse a single FeedEntity with a vehicle position into a dict."""
+    from datetime import datetime
+
+    from better_transit.gtfs.time_utils import KANSAS_CITY_TZ
+
     vp = entity.vehicle
+
+    timestamp = None
+    if vp.timestamp:
+        timestamp = datetime.fromtimestamp(
+            vp.timestamp, tz=KANSAS_CITY_TZ
+        ).isoformat()
+
     return {
         "vehicle_id": vp.vehicle.id if vp.vehicle.id else entity.id,
         "trip_id": vp.trip.trip_id if vp.HasField("trip") else None,
         "route_id": vp.trip.route_id if vp.HasField("trip") else None,
         "latitude": vp.position.latitude if vp.HasField("position") else None,
         "longitude": vp.position.longitude if vp.HasField("position") else None,
-        "timestamp": vp.timestamp if vp.timestamp else None,
+        "timestamp": timestamp,
     }

@@ -1,5 +1,3 @@
-from typing import Any
-
 from pydantic import BaseModel
 
 
@@ -23,6 +21,11 @@ class RouteStopResponse(BaseModel):
     departure_time: str
 
 
+class GeoJsonLineString(BaseModel):
+    type: str
+    coordinates: list[list[float]]
+
+
 class RouteDetailResponse(RouteResponse):
-    shape_geojson: dict[str, Any] | None = None
+    shape_geojson: GeoJsonLineString | None = None
     stops: list[RouteStopResponse] = []

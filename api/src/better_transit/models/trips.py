@@ -1,8 +1,10 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
 class TripLeg(BaseModel):
-    mode: str  # "walk", "transit", "transfer"
+    mode: Literal["walk", "transit", "transfer"]
     from_stop_id: str | None = None
     to_stop_id: str | None = None
     route_id: str | None = None
